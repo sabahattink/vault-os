@@ -1,5 +1,7 @@
 # vault-os
 
+![vault-os banner](assets/vault-os-banner.jpg)
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
