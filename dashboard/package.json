@@ -1,0 +1,1 @@
+{"name":"vault-os-dashboard","version":"1.0.0","main":"server.js","scripts":{"start":"node server.js"},"dependencies":{"chokidar":"^5.0.0","dotenv":"^17.4.2","express":"^5.2.1","marked":"^18.0.3","node-telegram-bot-api":"^0.67.0","ws":"^8.20.0"}}

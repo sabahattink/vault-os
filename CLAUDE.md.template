@@ -1,0 +1,105 @@
+# JARVIS — Knowledge Vault
+
+**Owner:** YOUR_NAME
+**Vault:** `VAULT_PATH`
+
+---
+
+## At the Start of Every Session (Required)
+1. Read `wiki/hot.md` — get previous context
+2. Read `wiki/index.md` — learn what is in the vault
+3. Respond to the user
+
+---
+
+## Wiki Commands
+
+**ingest [file|all]** — process a source from `.raw/` → apply `wiki/skills/ingest.md` rules. Goal: 1 source → 8-15 connected pages.
+
+**query: [question]** — hot → index → relevant pages → answer. Do not load the entire vault.
+
+**lint the wiki** — detect broken links, orphan pages, knowledge gaps, stale content.
+
+**/save [name]** — convert current session into a wiki note.
+
+**/autoresearch [topic]** — autonomous research loop.
+
+**/wiki** — vault status summary.
+
+**/connect** — cross-domain connection tour using `wiki/skills/connect.md` rules.
+
+**/synthesize [topic]** — produce a synthesis document using `wiki/skills/synthesize.md` rules.
+
+## Skill Files
+
+Read the relevant skill file before each command:
+
+| Command      | Skill File                    |
+|--------------|-------------------------------|
+| ingest       | `wiki/skills/ingest.md`       |
+| /connect     | `wiki/skills/connect.md`      |
+| /synthesize  | `wiki/skills/synthesize.md`   |
+
+---
+
+## Vault Context
+- Your tech stack, domain, and projects go here
+- Services and infrastructure overview
+- Active projects and their current status
+
+---
+
+## Folder Structure
+```
+.raw/          → drop source files here, then ingest
+wiki/          → hot.md · index.md · log.md · sources · entities · concepts
+00_INBOX/      → nightly agent input (Notion + disk sync)
+10_NOTES/      → atomic notes
+20_PROJECTS/   → your projects
+30_PEOPLE/     → people
+40_RESOURCES/  → articles, references
+50_DAILY/      → morning reports (YYYY-MM-DD-morning.md)
+60_ACTIONS/    → actions.md · product-opportunities.md
+  decisions/   → decision archive (YYYY-MM-DD-topic.md) — pre-decision brief reads this
+  patterns/    → weekly/monthly pattern reports (nightly agent writes)
+  business-edge/ → BUSINESS-EDGE.md (known weaknesses + edge definition)
+70_ARCHIVE/    → processed INBOX
+MEMORY/        → WORK · KNOWLEDGE · LEARNING
+```
+
+## Compounding Intelligence
+
+Every important decision → save as `60_ACTIONS/decisions/YYYY-MM-DD-topic.md`.
+Template: `60_ACTIONS/decisions/_TEMPLATE.md`
+
+Use the `/api/pre-decision` endpoint in the dashboard for pre-decision briefs:
+past decisions + known weaknesses + pattern analysis → briefing before deciding.
+
+`BUSINESS-EDGE.md` → updated by nightly agent, tracks strengths and weaknesses.
+
+---
+
+## Daily Note Capture System
+
+`50_DAILY/YYYY-MM-DD-morning.md` serves dual purpose:
+- **Top:** Morning briefing written by nightly agent (Yesterday/Critical/Actions/Today)
+- **Bottom:** Capture sections for the day — `## Captures` · `## Research Signals` · `## Content Ideas` · `## Links to Process`
+- **Evening (23:00):** Nightly agent Phase 11 → `## Evening Review` (4 outputs: BEST CAPTURE · CONTENT ANGLE · CONNECTIONS · TOMORROW FOCUS)
+
+**Telegram capture** (`@your_bot`): message is appended to today's daily note, routed by tag:
+- Plain message → `## Captures`
+- `#idea` → `## Content Ideas`
+- `#signal` / `#research` → `## Research Signals`
+- `#link` or URL → `## Links to Process`
+- Voice message → transcribed via Whisper.cpp → daily note (🎤 prefix)
+
+**ContentPipeline:** The "CONTENT ANGLE" from Evening Review is automatically copied to `CONTENT_PIPELINE_DIR/inbox/YYYY-MM-DD-jarvis-angle.md`.
+
+**Dashboard `/api/morning-digest`:** Single HTTP request — brief (Yesterday/Critical/CarryOver/Tasks/Risks/Opportunities) + yesterday's Evening Review + Wiki Hot snippet.
+
+## Rules
+- Never delete — archive
+- Wikilink-first: `[[concept]]`
+- One idea per note
+- Every note should have YAML metadata: `type, date, tags, related`
+- Nightly agent: runs automatically at 23:00
