@@ -1,115 +1,112 @@
-# {{PROJECT_NAME}} — Knowledge Vault OS
+# vault-os
 
-**Owner:** {{USER_NAME}}
-**Vault:** `{{VAULT_PATH}}`
-**Identity:** `USER\DA_IDENTITY.md` | **Mission:** `USER\TELOS\mission.md`
+**Port:** 3777 | **Stack:** Node.js 18 + Express 5 + PowerShell 7 | **Runtime:** Windows
 
----
+## What
 
-## Session Start (Required)
-1. Read `wiki/hot.md` — get previous context
-2. Read `wiki/index.md` — learn what's in the vault
-3. Respond to user
+vault-os adds automation to an Obsidian vault: a dashboard server with a Telegram capture bot, local Whisper.cpp voice transcription, and a 12-phase PowerShell nightly agent that writes morning briefs, synthesizes daily captures, and maintains wiki health — all driven by the Claude API.
 
----
+## Quick Start
 
-## Wiki Commands
-
-**ingest [file|all]** — process `.raw/` source → apply `wiki/skills/ingest.md` rules. Target: 1 source → 8-15 connected pages.
-
-**query: [question]** — hot → index → relevant pages → answer. Don't load the entire vault.
-
-**lint the wiki** — detect broken links, orphan pages, knowledge gaps, stale content.
-
-**/save [name]** — convert current session to a wiki note.
-
-**/autoresearch [topic]** — autonomous research loop.
-
-**/wiki** — vault status summary.
-
-**/connect** — cross-domain connection tour using `wiki/skills/connect.md` rules.
-
-**/synthesize [topic]** — produce synthesis document using `wiki/skills/synthesize.md` rules.
-
-## Skill Files
-
-Read the relevant skill file before each command:
-
-| Command | Skill File |
-|---------|------------|
-| ingest | `wiki/skills/ingest.md` |
-| /connect | `wiki/skills/connect.md` |
-| /synthesize | `wiki/skills/synthesize.md` |
-
----
-
-## Organization Context
-<!-- Fill in your organization/project context here -->
-- Organization: {{ORGANIZATION}}
-- Active projects: (see `20_PROJECTS/` folder)
-- Tech stack: {{TECH_STACK}}
-- Hosting: {{HOSTING_INFO}}
-
----
-
-## Folder Structure
-```
-.raw/          → drop source files here, then ingest
-wiki/          → hot.md · index.md · log.md · sources · entities · concepts
-00_INBOX/      → nightly agent entry point (Notion + disk sync)
-10_NOTES/      → atomic notes
-20_PROJECTS/   → project hubs
-30_PEOPLE/     → people
-40_RESOURCES/  → articles, tweets
-50_DAILY/      → morning reports (YYYY-MM-DD-morning.md)
-60_ACTIONS/    → actions.md · product-opportunities.md
-  decisions/   → decision archive (YYYY-MM-DD-topic.md) — reads pre-decision brief
-  patterns/    → weekly/monthly pattern reports (nightly agent writes)
-  business-edge/ → BUSINESS-EDGE.md (known weaknesses + edge definition)
-70_ARCHIVE/    → processed INBOX
-MEMORY/        → WORK · KNOWLEDGE · LEARNING (PAI pattern)
-USER/          → DA_IDENTITY · TELOS · ISA template
+```bash
+./setup.sh                              # install deps, copy .env and CLAUDE.md
+cd dashboard && node server.js          # start dashboard on http://localhost:3777
+pwsh -File scripts/nightly-agent.ps1 -VaultPath "C:\your\vault"   # manual run
 ```
 
-## Compounding Intelligence
+## Commands
 
-Every significant decision → save as `60_ACTIONS/decisions/YYYY-MM-DD-topic.md`.
-Template: `60_ACTIONS/decisions/_TEMPLATE.md`
+```bash
+# Dashboard
+cd dashboard
+node server.js                          # start server (port from .env PORT, default 3777)
 
-Use `/api/pre-decision` endpoint in the dashboard for pre-decision briefing:
-past decisions + known weaknesses + pattern analysis → decision brief.
+# Nightly agent (PowerShell 7+)
+pwsh -File scripts/nightly-agent.ps1 -VaultPath "C:\path\to\vault"
 
-`BUSINESS-EDGE.md` → updated by nightly agent, tracks your strengths/weaknesses.
+# Register as scheduled task (run as Administrator)
+pwsh -File scripts/install-scheduler.ps1
 
----
+# Dependencies
+cd dashboard && npm install
+```
 
-## Daily Note Capture System
+## Architecture
 
-`50_DAILY/YYYY-MM-DD-morning.md` is dual-purpose:
-- **Top:** Morning briefing written by nightly agent (Yesterday/Critical/Actions/Today)
-- **Bottom:** Day-long capture sections — `## Captures` · `## Research Signals` · `## Content Ideas` · `## Links to Process`
-- **Evening (23:00):** Nightly agent PHASE 11 → `## Evening Review` (4 outputs: BEST CAPTURE · CONTENT ANGLE · CONNECTIONS · TOMORROW FOCUS)
+```
+dashboard/server.js          All API endpoints, WebSocket, Telegram bot, voice pipeline
+scripts/nightly-agent.ps1    12 phases, runs at 23:00 via Task Scheduler
+scripts/notify.ps1           Windows toast notifications (called by nightly agent)
+scripts/h-disk-sync.ps1      Disk → vault INBOX sync (Phase 1)
+scripts/notion-sync.ps1      Notion → vault INBOX sync (Phase 1)
+scripts/install-scheduler.ps1  Registers nightly agent in Windows Task Scheduler
+wiki/skills/ingest.md        Rules: 1 source → 8-15 wiki pages
+wiki/skills/connect.md       Rules: cross-domain connection discovery
+wiki/skills/synthesize.md    Rules: synthesis document production
+CLAUDE.md.template           Copy this → CLAUDE.md, fill in vault details
+.env.example                 All 16 env vars with descriptions
+```
 
-**Telegram capture** (`@<your-bot>`): message is appended to today's daily note, routed by tag:
-- Plain message → `## Captures`
-- `#fikir` / `#idea` → `## Content Ideas`
-- `#sinyal` / `#signal` / `#research` → `## Research Signals`
-- `#link` or URL → `## Links to Process`
+Claude is invoked via the `claude --print` CLI (piped from a temp file) — not the SDK. Both `server.js` and `nightly-agent.ps1` use this pattern.
 
-**PHASE 6 behavior:** Morning briefing is written to TOMORROW's file, preserving today's captures. PHASE 6 also extracts uncompleted `- [ ]` actions from today and carries them over to tomorrow's brief in `## Devreden`.
+## Key Files
 
-**PHASE 12 (Sunday):** Wiki Lint — broken wikilink + orphan + notes older than 90 days report, written as `wiki/lint-log-YYYY-MM-DD.md`.
+```
+dashboard/server.js           Single file — read this to understand all API behavior
+dashboard/package.json        Dependencies: express, telegraf→node-telegram-bot-api, chokidar, marked, ws, dotenv
+.env.example                  Source of truth for all environment variables
+scripts/nightly-agent.ps1     All 12 phases in sequence — search "PHASE N:" to jump to one
+wiki/skills/*.md              Skill files read by Claude during wiki commands and agent phases
+CLAUDE.md.template            Template for the vault-level Claude context file
+```
 
-**ContentPipeline:** The "CONTENT ANGLE" output from Evening Review is automatically copied to `{{CONTENT_PIPELINE_PATH}}/inbox/YYYY-MM-DD-jarvis-angle.md`.
+## Nightly Agent Phases (quick reference)
 
-**Voice capture (Telegram):** Voice message → Whisper.cpp (local, `{{WHISPER_PATH}}`, model configurable via `WHISPER_MODEL` env var, language via `WHISPER_LANG`) → transcribe → daily note (🎤 prefix). FFmpeg converts to 16kHz mono WAV.
+| # | Name | Key output |
+|---|------|------------|
+| 1 | Observe | `$InboxSummary`, `$GitSummary` |
+| 2 | Vault Sync | `20_PROJECTS/<id>/<id> Overview.md`, `wiki/entities/<id>.md` |
+| 3 | Think | `$ThinkOutput` (JSON via Claude) |
+| 4 | Learn | `MEMORY/LEARNING/learnings.md` |
+| 5 | Wiki Update | `wiki/hot.md`, `wiki/log.md` |
+| 6 | Morning Report | `50_DAILY/YYYY-MM-DD-morning.md` (tomorrow) + capture scaffold |
+| 7 | Verify | Log warnings for missing files |
+| 8 | Archive | `00_INBOX/` → `70_ARCHIVE/YYYY/MM/` |
+| 9 | Pattern Analysis | `60_ACTIONS/patterns/`, `BUSINESS-EDGE.md` (Sundays / 5+ decisions) |
+| 10 | Connect Tour | `wiki/skills/connect-log-YYYY-MM-DD.md` (Sundays) |
+| 11 | Evening Review | `## Evening Review` in today's daily note + ContentPipeline angle |
+| 12 | Wiki Lint | `wiki/lint-log-YYYY-MM-DD.md` (Sundays) |
 
-**Dashboard `/api/morning-digest`:** Single HTTP request — brief (Yesterday/Critical/Carry-over/Today/Risk/Opportunity) + yesterday's Evening Review + Wiki Hot snippet. Shown as "DAY CONTEXT" panel in dashboard.
+## Configuration
 
-## Rules
-- Never delete — archive
-- Wikilink-first: `[[concept]]`
-- Each note = one idea
-- Turkish-first (configurable)
-- Every note should have YAML metadata: `type, date, tags, related`
-- Nightly agent: Algorithm v6.3.0, runs automatically every night at 23:00
+All config via environment variables. See `.env.example` for full descriptions.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VAULT_PATH` | Yes | Absolute path to Obsidian vault root |
+| `CONTENT_PIPELINE_DIR` | Yes | ContentPipeline directory path |
+| `PORT` | No | Dashboard port (default: `3777`) |
+| `TELEGRAM_BOT_TOKEN` | Yes | From @BotFather — activates capture bot |
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude CLI |
+| `WHISPER_CLI` | No | Path to `whisper-cli.exe` — enables voice |
+| `WHISPER_MODEL` | No | Model filename (default: `ggml-small.bin`) |
+| `WHISPER_LANG` | No | Transcription language (default: `en`) |
+| `NOTION_TOKEN` | No | Notion integration token |
+| `CONTENT_PIPELINE_PATH` | No | Used by nightly agent for pipeline counts |
+| `MONITORED_SERVICES` | No | `Name\|URL` pairs for uptime monitoring |
+
+## Vault Folder Convention (expected by the code)
+
+```
+00_INBOX/          nightly agent reads here, archives after processing
+50_DAILY/          YYYY-MM-DD-morning.md — brief (top) + captures (bottom)
+60_ACTIONS/        actions.md, decisions/, patterns/, business-edge/
+70_ARCHIVE/        processed inbox files (auto-created)
+20_PROJECTS/       project hubs (auto-created by Phase 2)
+wiki/              hot.md, index.md, log.md, entities/, skills/
+MEMORY/LEARNING/   learnings.md (appended by Phase 4)
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
